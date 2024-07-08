@@ -1,0 +1,29 @@
+server:
+  port: 8083
+
+api:
+  yahoofinance:
+    domain: "https://query1.finance.yahoo.com"
+    endpoints:
+      quote: '/v7/finance/quote'
+    crumb: 'qT9vKmlnA0S'
+    cookie: 'A3=d=AQABBBxa9GUCEIx1ehgPOPP7q2exNAW9P4QFEgEBCAE-VGaDZg3sbmUB_eMBAAcIHFr0ZQW9P4Q&S=AQAAAo3Mugm3fYoNe8sY-um4EIg'
+
+database: 
+  db-name: "springboot"
+
+spring:
+  datasource:
+    driverClassName: "org.postgresql.Driver"
+    url: "jdbc:postgresql://localhost:5432/${database.db-name}"
+    username: "postgres"
+    password: "Neon_genesis1"
+
+spring.jpa:
+  show-sql: true 
+  hibernate:
+    ddl-auto: create
+
+spring.data.redis:
+  host: localhost
+  port: 6379
