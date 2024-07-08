@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Stock Price Chart</title>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/modules/series-label.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2c2c2c;
+            color: #d3d3d3;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 20px 0;
+            color: #ffffff;
+        }
+
+        #container {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        #stockChart,
+        #candlestickChart {
+            width: 70%;
+            height: 600px;
+            background-color: #3a3a3a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        #bidAskTable {
+            width: 25%;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background-color: #3a3a3a;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #444;
+            text-align: center;
+            padding: 10px;
+            color: #ffffff;
+        }
+
+        .bid {
+            background-color: #388e3c;
+        }
+
+        .ask {
+            background-color: #d32f2f;
+        }
+
+        .price-volume {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .price {
+            font-weight: bold;
+        }
+
+        .volume {
+            font-size: 0.9em;
+        }
+
+        .options {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .options select {
+            padding: 10px;
+            font-size: 16px;
+            background-color: #444;
+            color: #ffffff;
+            border: 1px solid #555;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Stock Price Chart</h1>
+    <div class="options">
+        <label for="timeRange">Select Time Range:</label>
+        <select id="timeRange" onchange="updateChart()">
+            <option value="5min">5 Min</option>
+            <option value="1month">1 Month</option>
+            <option value="1year">1 Year</option>
+            <option value="5years">5 Years</option>
+        </select>
+    </div>
+    <div id="container">
+        <div id="candlestickChart"></div>
+        <div id="bidAskTable">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bid</th>
+                        <th>Ask</th>
+                    </tr>
+                </thead>
+                <tbody id="bidAskBody">
+                    <tr class="bid">
+                        <td id="bidPrice">---</td>
+                        <td id="askPrice">---</td>
+                    </tr>
+                    <tr class="volume">
+                        <td id="bidVolume">---</td>
+                        <td id="askVolume">---</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- <div id="candlestickChart"></div> -->
+    <script type="text/javascript">
+        function getQueryParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        const symbol = getQueryParameter('symbol') || '0388.HK'; // Default to '0388.HK' if not provided
+
+        function fetchAndUpdateBidAsk() {
+            fetch(`/bidAsk?symbol=${symbol}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('bidPrice').textContent = data.bidPrice.toFixed(3);
+                    document.getElementById('askPrice').textContent = data.askPrice.toFixed(3);
+                    document.getElementById('bidVolume').textContent = (data.bidVolume / 1000).toFixed(1) + 'k';
+                    document.getElementById('askVolume').textContent = (data.askVolume / 1000).toFixed(1) + 'k';
+                });
+        }
+
+        function updateChart() {
+            const timeRange = document.getElementById('timeRange').value;
+            let fetchUrl, title, seriesType;
+
+            switch (timeRange) {
+                case '5min':
+                    fetchUrl = `/quote?symbol=${symbol}`;
+                    ma20FetchUrl = `/ma?symbol=${symbol}`;
+                    ma10FetchUrl = `/ma?symbol=${symbol}`;
+                    ma5FetchUrl = `/ma?symbol=${symbol}`;
+                    title = '5-Minute Stock Price';
+                    seriesType = 'line';
+                    break;
+                case '1month':
+                    fetchUrl = `/api/historical/daily?symbol=${symbol}`;
+                    ma20FetchUrl = `/ma/daily?symbol=${symbol}&period=20`;
+                    ma10FetchUrl = `/ma/daily?symbol=${symbol}&period=10`;
+                    ma5FetchUrl = `/ma/daily?symbol=${symbol}&period=5`;
+                    title = '1-Month Candlestick Chart';
+                    seriesType = 'candlestick';
+                    break;
+                case '1year':
+                    fetchUrl = `/api/historical/weekly?symbol=${symbol}`;
+                    ma20FetchUrl = `/ma/weekly?symbol=${symbol}&period=20`;
+                    ma10FetchUrl = `/ma/weekly?symbol=${symbol}&period=10`;
+                    ma5FetchUrl = `/ma/weekly?symbol=${symbol}&period=5`;
+                    title = '1-Year Candlestick Chart';
+                    seriesType = 'candlestick';
+                    break;
+                case '5years':
+                    fetchUrl = `/api/historical/monthly?symbol=${symbol}`;
+                    ma20FetchUrl = `/ma/monthly?symbol=${symbol}&period=20`;
+                    ma10FetchUrl = `/ma/monthly?symbol=${symbol}&period=10`;
+                    ma5FetchUrl = `/ma/monthly?symbol=${symbol}&period=5`;
+                    title = '5-Year Candlestick Chart';
+                    seriesType = 'candlestick';
+                    break;
+                default:
+                    fetchUrl = `/quote?symbol=${symbol}`;
+                    ma20FetchUrl = `/ma?symbol=${symbol}`;
+                    ma10FetchUrl = `/ma?symbol=${symbol}`;
+                    ma5FetchUrl = `/ma?symbol=${symbol}`;
+                    title = '5-Minute Stock Price';
+                    seriesType = 'line';
+            }
+
+            Promise.all([
+                fetch(fetchUrl).then(response => response.json()),
+                fetch(ma20FetchUrl).then(response => response.json()),
+                fetch(ma10FetchUrl).then(response => response.json()),
+                fetch(ma5FetchUrl).then(response => response.json())
+            ])
+            .then(([priceData, ma20Data, ma10Data, ma5Data]) => {
+                    const processedData = priceData.map(item => [
+                        new Date(item.timestamp * 1000).getTime(),
+                        item.open,
+                        item.high,
+                        item.low,
+                        item.close
+                    ]);
+
+                    const ma20Series = ma20Data.map(item => [
+                        new Date(item.timestamp * 1000).getTime(),
+                        item.movingAverage
+                    ]);
+
+                    const ma10Series = ma10Data.map(item => [
+                        new Date(item.timestamp * 1000).getTime(),
+                        item.movingAverage
+                    ]);
+
+                    const ma5Series = ma5Data.map(item => [
+                        new Date(item.timestamp * 1000).getTime(),
+                        item.movingAverage
+                    ]);
+
+                    Highcharts.stockChart('candlestickChart', {
+                        rangeSelector: {
+                            buttons: [{
+                                type: 'all',
+                                text: 'All',
+                                title: 'View all'
+                            }]
+                        },
+                        title: {
+                            text: title
+                        },
+                        series: [{
+                            type: seriesType,
+                            name: 'Stock Price',
+                            data: processedData,
+                            tooltip: {
+                                valueDecimals: 2
+                            }
+                        }, {
+                            type: 'line',
+                            name: 'Moving Average 20',
+                            data: ma20Series,
+                            tooltip: {
+                                valueDecimals: 2
+                            }
+                        },{
+                            type: 'line',
+                            name: 'Moving Average 10',
+                            data: ma10Series,
+                            tooltip: {
+                                valueDecimals: 2
+                            }
+                        }, {
+                            type: 'line',
+                            name: 'Moving Average 5',
+                            data: ma5Series,
+                            tooltip: {
+                                valueDecimals: 2
+                            }
+                        }]
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+
+        // Fetch and update chart initially
+        updateChart();
+        fetchAndUpdateBidAsk();
+
+        // Set interval to fetch and update chart and bid-ask data every 10 seconds
+        setInterval(() => {
+            updateChart();
+            fetchAndUpdateBidAsk();
+        }, 10000);
+
+        // Set default chart to 5-min data
+        updateChart();
+    </script>
+</body>
+
+</html>

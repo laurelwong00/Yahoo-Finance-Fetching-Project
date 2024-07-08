@@ -1,0 +1,13 @@
+spring:
+  thymeleaf:
+    cache: false
+  web:
+    resources:
+      static-locations: classpath:/static/, classpath:/public/, classpath:/, classpath:/resources/, classpath:/META-INF/resources/
+server:
+  port: 8081
+
+api:
+  yahoofinance:
+    base-url: 'http://localhost:8083'
+    quote-endpoint: '/api/quote/5min-data'
